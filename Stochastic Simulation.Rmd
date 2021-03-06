@@ -1,0 +1,163 @@
+---
+title: "Stochastic Simulation"
+author: "Damjan Kostovic"
+date: "5 3 2021"
+output: pdf_document
+---
+
+Simulation of Transition Matrix as n -> infinity
+```{r}
+library(matrixcalc)
+
+#Matrix 1
+Transition_Matrix1 <- t(matrix(c(0.1,0.2,0.7,
+                               0.9,0.1,0,
+                               0.1,0.8,0.1), nrow = 3))
+for (i in 1:15) {
+  print(matrix.power(Transition_Matrix1,i))
+}
+print(matrix.power(Transition_Matrix1,200))
+
+#Matrix 2
+Transition_Matrix2 <- t(matrix(c(0,1,0,
+                               0.3,0,0.7,
+                               0,0,1), nrow = 3))
+for (i in 1:12) {
+  print(matrix.power(Transition_Matrix2,i))
+}
+
+
+#Matrix 3
+Transition_Matrix3 <- t(matrix(c(0.7,0.3,
+                               0.3,0.7), nrow = 2))
+for (i in 1:5) {
+  print(matrix.power(Transition_Matrix3,i))
+}
+```
+
+Weather Prediction
+
+
+Tennis Match
+
+First, lets see if the initial probabilities really sum up to 1. (We'll try this by randomly generating p..);
+```{r}
+rm(list=ls())
+initial.probs.func <- function(p,q){
+  c0 <- q^4 + 4*q^4*p
+  c1 <- 4*q^3*p^2
+  c2 <- 6*q^2*p^2
+  c3 <- 4*q^2*p^3
+  c4 <- p^4+4*q*p^4
+  
+  return(c(c0,c1,c2,c3,c4))
+}
+
+set.seed(86351)
+q = runif(1000,0,1)
+p = 1-q
+
+sum.of.probabilities <- numeric()
+for (i in 1:1000){
+  sum.of.probabilities[i] <- sum(inititial.probs.func(p[i],q[i]))
+}
+
+table(sum.of.probabilities)
+
+```
+
+Simulation of a game
+```{r}
+rm(list=ls())
+initial.probs.func <- function(q,p){
+  c0 <- q^4 + 4*q^4*p
+  c1 <- 4*q^3*p^2
+  c2 <- 6*q^2*p^2
+  c3 <- 4*q^2*p^3
+  c4 <- p^4+4*q*p^4
+  
+  return(c(c0,c1,c2,c3,c4))
+}
+T.MAT.func <- function(q,p){
+  matrix(c(1,q,0,0,0,
+           0,0,q,0,0,
+           0,p,0,q,0,
+           0,0,p,0,0,
+           0,0,0,p,1),
+         nrow = 5)
+}
+
+
+stage1.simfunc <- function(R){
+  for (i in 1:40){
+    q <- runif(1,0,1)
+    p <- 1-q
+    if (i == 1){
+        stage1 <- rmultinom(1,R,initial.probs.func(q,p))
+          df <- data.frame("Game B" = stage1[1],
+           "Adv. B" = stage1[2],
+           "Deuce" = stage1[3],
+           "Adv. A" = stage1[4],
+           "Game A" = stage1[5])
+          rownames(df)[i] <- paste("q =", round(q,3))
+    }
+    else{
+      stage1 <- rmultinom(1,R,initial.probs.func(q,p))
+      df[i,1] = stage1[1]
+      df[i,2] = stage1[2]
+      df[i,3] = stage1[3]
+      df[i,4] = stage1[4]
+      df[i,5] = stage1[5]
+      rownames(df)[i] <- paste("q =", round(q,3))
+    }
+  }
+  return(df)
+}
+test <- stage1.simfunc(1000)
+
+###Simulation of a whole game
+set.seed(49519)
+
+stage1.simfunc2 <- function(q,p){
+  stage1 <- rmultinom(1,1,initial.probs.func(q,p))
+  df <- data.frame("Game B" = stage1[1],
+           "Adv. B" = stage1[2],
+           "Deuce" = stage1[3],
+           "Adv. A" = stage1[4],
+           "Game A" = stage1[5])
+  return(df)
+}
+
+
+Game_sim_func <- function(q,p){
+  cur_state <- stage1.simfunc2(q,p)
+  T.MAT <- T.MAT.func(q,p)
+  cur_state_nr <- which(cur_state==1)
+while(TRUE){
+  if (cur_state_nr == 1){
+  print("Player B won!")
+  break
+}else if(cur_state_nr == 5){
+  print("Player A won!")
+  break
+}else if(cur_state_nr == 2){
+  print("Player B is winning 40-30!")
+  cur_state <- rmultinom(1,1, T.MAT[2,])
+  cur_state_nr <- which(cur_state==1)
+}else if(cur_state_nr == 3){
+  print("Deuce, 30-30!")
+  cur_state <- rmultinom(1,1, T.MAT[3,])
+  cur_state_nr <- which(cur_state==1)
+}
+else if(cur_state_nr == 4){
+  print("Player B is losing 30-40!")
+  cur_state <- rmultinom(1,1, T.MAT[4,])
+  cur_state_nr <- which(cur_state==1)
+}
+}
+}
+
+Game_sim_func(0.4,0.6)
+
+```
+
