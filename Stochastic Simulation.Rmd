@@ -129,35 +129,121 @@ stage1.simfunc2 <- function(q,p){
 }
 
 
+###A win for Player B equals "1", so a total number of won 
+###Games is easily calculated by sum(..)
 Game_sim_func <- function(q,p){
   cur_state <- stage1.simfunc2(q,p)
   T.MAT <- T.MAT.func(q,p)
   cur_state_nr <- which(cur_state==1)
+  duration<-1
 while(TRUE){
   if (cur_state_nr == 1){
   print("Player B won!")
+  return(c(1,duration))
   break
 }else if(cur_state_nr == 5){
   print("Player A won!")
-  break
+  return(c(0,duration))
 }else if(cur_state_nr == 2){
   print("Player B is winning 40-30!")
   cur_state <- rmultinom(1,1, T.MAT[2,])
   cur_state_nr <- which(cur_state==1)
+  duration <- duration + 1
 }else if(cur_state_nr == 3){
   print("Deuce, 30-30!")
   cur_state <- rmultinom(1,1, T.MAT[3,])
   cur_state_nr <- which(cur_state==1)
+  duration <- duration + 1
 }
 else if(cur_state_nr == 4){
   print("Player B is losing 30-40!")
   cur_state <- rmultinom(1,1, T.MAT[4,])
   cur_state_nr <- which(cur_state==1)
+  duration <- duration + 1
 }
 }
 }
 
-Game_sim_func(0.4,0.6)
+tot.won.func <- function(nr_of_games, q,p, total.wins = 0){
+  for (i in 1:nr_of_games){
+      total.wins <- total.wins + Game_sim_func(q,p)
+  }
+  return(total.wins)
+}
 
+
+###Now we have a function to get total of wins
+###now let's model the win-dependence of q
+invisible(capture.output(tot.wins <- tot.won.func(100,0.6,0.4)))
+
+set.seed(123812)
+q <- ppoints(100)
+tot.wins <- matrix(NA, ncol = 2, nrow = 100)
+for (i in 1:100){
+  invisible(capture.output(tot.wins[i,] <- tot.won.func(100,q[i],1-q[i])))
+}
+
+plot(q,tot.wins[,1], type = "l", main = "Wins for Player B for chaning win probability q", ylab = "Total wins for player B per 100 games",
+     xlab="probability of winning a point for Player B")
+
+plot(q, tot.wins[,2], type = "l", main="Length of the Random Walk Process [w/o Stage1]", xlab = "probability of winning a point for Player B",
+     ylab = "Total of points played per 100 Games")
+
+
+```
+
+
+Now Let's write a function to see who wins a whole tennis match. We need a won games counter. I will not include a tiebreak. First to win 6 games, won the set
+
+```{r}
+Tennis.Match.Func <- function(q,p){
+  wins.player.B <- 0
+  wins.player.A <- 0
+  sets.player.B <- 0
+  sets.player.A <- 0
+  
+  while(TRUE){
+  game <- Game_sim_func(q,p)[1]
+  if (game == 1){
+    print("Player B won the game!")
+    writeLines("\n")
+    wins.player.B <- wins.player.B + 1
+    
+    if (wins.player.B == 6){
+      sets.player.B <- sets.player.B+1
+      print(paste("Player B won the set! The total score in sets is: ", 
+            sets.player.B, "to", sets.player.A, "for player B"))
+      wins.player.B<-0
+      wins.player.A<-0
+    }
+    if (sets.player.B == 2){
+    print(paste("Player B won!! The final score is:",
+             sets.player.B, "to", sets.player.A, "for player B"))
+      break
+    }
+      
+    
+  }else{
+    print("Player A won the game!")
+    writeLines("\n")
+    wins.player.A <- wins.player.A + 1
+    if (wins.player.A == 6){
+      sets.player.A <- sets.player.A+1
+      print(paste("Player A won the set! The total score is: ", sets.player.B,
+                  "to",
+            sets.player.A, "for player B"))
+      wins.player.B<-0
+      wins.player.A<-0
+    }
+    if (sets.player.A == 2){
+      print(paste("Player A won!! The final score is:",
+             sets.player.A, "to", sets.player.B, "for player A"))
+      break
+    }
+  }    
+  }
+}
+
+Tennis.Match.Func(0.6,0.4)
 ```
 
