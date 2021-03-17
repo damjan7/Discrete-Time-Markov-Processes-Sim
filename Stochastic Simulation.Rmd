@@ -14,20 +14,6 @@ Transition_Matrix1 <- t(matrix(c(0.1,0.2,0.7,
                                0.9,0.1,0,
                                0.1,0.8,0.1), nrow = 3))
 matrix.power(Transition_Matrix1,100)
-eigen((Transition_Matrix1))
-ev1 <- eigen((Transition_Matrix1))$vectors[,1]
-t(ev1/sum(ev1)) %*% Transition_Matrix1
-t(ev1/sum(ev1)) %*% matrix.power(Transition_Matrix1,100)
-
-
-
-
-for (i in 1:15) {
-  print(matrix.power(Transition_Matrix1,i))
-}
-print(matrix.power(Transition_Matrix1,200))
-
-
 
 #Matrix 2
 Transition_Matrix2 <- t(matrix(c(0,1,0,
@@ -59,14 +45,13 @@ Weather_T.MAT <- matrix(c(0.8, 0.4, 0.6, 0,
 Stationary_MAT <- matrix.power(Weather_T.MAT,100)
 eigen(t(Weather_T.MAT)) #look for eigenvalue = 1
 ev1 <- abs(eigen(t(Weather_T.MAT))$vectors[,1]) #Normalize the left eigenvector
-ev1 / sum(ev1)
+normalized_ev1 <- ev1 / sum(ev1)
+normalized_ev1
+#It doesn't matter if we multiply the eigenvector with the stationary Matrix or the 1 step transition matrix
+t(normalized_ev1) %*% Weather_T.MAT
+t(normalized_ev1) %*% Stationary_MAT
 
-Stationary_MAT
 
-
-
-abs(t(ev1) %*% Stationary_MAT) / sum(abs(t(ev1) %*% Stationary_MAT))
-ev1
 
 ```
 
@@ -74,11 +59,14 @@ Weather 2.0
 Austin dataset
 ```{r}
 rm(list=ls())
+
+#Some data preparation...
 weather <- read.csv("austin_weather.csv", sep = ",")
 rownames(weather) <- weather[,1]
 weather <- weather[,c(2,20)]
 weather$Sunny<- NA
 
+#Here I add a column to indicate whether it was sunny or not
 for (i in 1:1319){
   if (weather[i,2] == 0){
     weather$Sunny[i] <- 1
@@ -87,9 +75,9 @@ for (i in 1:1319){
   }
 }
 
-#weather$PrecipitationSumInches <- as.numeric(as.character(weather$PrecipitationSumInches))
 str(weather)
 
+#Creating the dataframe for "training"
 train_idx <- as.vector(1:as.integer(0.75*1319))
 train <- weather[train_idx,]
 
@@ -131,6 +119,7 @@ colnames(T.MAT) = c("sunny", "rainy")
 T.MAT
 
 ###NOW lets predict the weather... 1 is sunny, 0 is rainy, thats why we can sample from bernoulli
+set.seed(7888)
 test.data <- weather[-train_idx,]
 test.data$Prediction = NA
 
@@ -158,6 +147,29 @@ correct.counter/ (nrow(test.data)-1)
 ## not really
 sum(test.data$Sunny[2:330]) / 330
 
+
+##new try??
+test.data$Prediction2 = NA
+
+for (i in 1:329) {
+  if(test.data$Sunny[i] == 1){
+    test.data$Prediction2[i+1] <- 1
+  }
+  else if(test.data$Sunny[i] == 0){
+    test.data$Prediction2[i+1] <- 0
+  }
+}
+
+correct.counter <- 0
+for (i in 2:330){
+  if(test.data$Sunny[i] == test.data$Prediction2[i]){
+    correct.counter <- correct.counter + 1
+  }
+}
+
+##sliiightly better
+correct.counter/ (nrow(test.data)-1)
+sum(test.data$Sunny[2:330]) / 330
 ```
 
 
@@ -369,6 +381,6 @@ Tennis.Match.Func <- function(q,p){
   }
 }
 set.seed(999)
-Tennis.Match.Func(0.6,0.4)
+Tennis.Match.Func(0.8,0.2)
 ```
 
